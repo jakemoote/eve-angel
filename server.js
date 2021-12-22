@@ -2,21 +2,75 @@ const express = require('express')
 const session = require('express-session')
 const axios = require('axios')
 const qs = require('querystring')
-const FileStore = require('session-file-store')(session);
-const Sequelize = require('sequelize')
+const { Sequelize, DataTypes} = require('sequelize');
+
 const SequelizeStore = require("connect-session-sequelize")(session.Store);
 require('dotenv').config()
 
 const app = express()
 const port = 80
 
-const clientId = process.env.ESI_CLIENT_ID
-const secretKey = process.env.ESI_SECRET_KEY
+const esi_client_id = process.env.ESI_CLIENT_ID
+const esi_secret_key = process.env.ESI_SECRET_KEY
+
+const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
+    dialect: 'postgres',
+    dialectOptions: {},
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT
+});
+
+const Asset = sequelize.define('Asset', {
+    // Model attributes are defined here
+    id: {
+        type: DataTypes.UUID,
+        primaryKey: true,
+        defaultValue: DataTypes.UUIDV4
+    },
+    character_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    is_singleton: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false
+    },
+    item_id: {
+        type: DataTypes.BIGINT,
+        allowNull: false,
+        unique: true
+    },
+    location_flag: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    location_id: {
+        type: DataTypes.BIGINT,
+        allowNull: false
+    },
+    location_type: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    quantity: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    type_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    }
+}, {});
+
+sequelize.sync({force: true})
+
+const sequelize_store = new SequelizeStore({db: sequelize})
+sequelize_store.sync()
 
 const session_options = {
-    store: new FileStore({}),
+    store: sequelize_store,
     secret: process.env.SESSION_SECRET,
-    resave: true,
+    resave: false,
     saveUninitialized: false,
     cookie: {}
 }
@@ -31,19 +85,19 @@ app.use(session(session_options))
 app.use(express.static('public'))
 
 app.get('/callback', async (req, res) => {
-    console.debug('EVE Login Callback')
-
     const response = await axios.post('https://login.eveonline.com/v2/oauth/token', qs.stringify({
         grant_type: 'authorization_code',
         code: req.query.code
     }), {
         auth: {
-            username: clientId,
-            password: secretKey
+            username: esi_client_id,
+            password: esi_secret_key
         }
     })
 
-    req.session.esi_access_token = response.data.access_token
+    // TODO: Validate JWT Token https://docs.esi.evetech.net/docs/sso/validating_eve_jwt.html
+    req.session.esi_access_token = response.data.access_token // JWT Token
+    // TODO: Implement refresh token
     req.session.esi_refresh_token = response.data.refresh_token
 
     res.redirect('/assets')
@@ -66,8 +120,10 @@ app.get('/assets', async (req, res) => {
     })
 
     // assets_response.headers['x-pages']
-    console.debug(assets_response.data)
-    console.debug('^^^ ASSET DATA ^^^')
+    assets_response.data.map((asset_data) => {
+        asset_data.character_id = character_id
+        Asset.create(asset_data)
+    })
 
     res.send('Login success - Assets')
 })
