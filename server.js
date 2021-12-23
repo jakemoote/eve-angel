@@ -2,7 +2,9 @@ const express = require('express')
 const session = require('express-session')
 const axios = require('axios')
 const qs = require('querystring')
-const { Sequelize, DataTypes} = require('sequelize');
+const { Sequelize, DataTypes} = require('sequelize')
+const jwt = require('jsonwebtoken');
+const jwksClient = require('jwks-rsa');
 
 const SequelizeStore = require("connect-session-sequelize")(session.Store);
 require('dotenv').config()
@@ -95,8 +97,45 @@ app.get('/callback', async (req, res) => {
         }
     })
 
-    // TODO: Validate JWT Token https://docs.esi.evetech.net/docs/sso/validating_eve_jwt.html
-    req.session.esi_access_token = response.data.access_token // JWT Token
+    const jwks_client = jwksClient({
+        jwksUri: 'https://login.eveonline.com/oauth/jwks'
+    });
+    function getKey(header, callback){
+        jwks_client.getSigningKey(header.kid, function(err, key) {
+            const signingKey = key.publicKey || key.rsaPublicKey;
+            callback(null, signingKey);
+        });
+    }
+
+    const access_token = response.data.access_token // JWT Token
+
+    const verifyToken = async (issuer) => {
+        return new Promise((resolve,reject) => {
+            return jwt.verify(access_token, getKey, { issuer }, (err, decoded) =>
+                    err ? reject(err) : resolve(decoded))
+        })
+    }
+
+    let decoded;
+    try {
+        decoded = await verifyToken('login.eveonline.com')
+    } catch (err) {
+        if (err.message.includes('jwt issuer invalid.')) {
+            try {
+                decoded = await verifyToken('https://login.eveonline.com')
+            } catch (err) {
+                console.debug('JWT Verification Failed')
+                return res.redirect('/')
+            }
+        } else {
+            console.debug('JWT Verification Failed')
+            return res.redirect('/')
+        }
+    }
+
+    console.debug(decoded)
+
+    req.session.esi_access_token = access_token
     // TODO: Implement refresh token
     req.session.esi_refresh_token = response.data.refresh_token
 
