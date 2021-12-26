@@ -13,8 +13,6 @@ const session = require('./session')
 
 app.use(session)
 
-app.use(express.static('public'))
-
 const index_routes = require('./routes/index');
 app.use('/', index_routes)
 

@@ -5,12 +5,34 @@ const axios = require("axios");
 const qs = require("querystring");
 const jwksClient = require("jwks-rsa");
 const jwt = require("jsonwebtoken");
-const {User, UserCharacter} = require("../models");
+const crypto = require("crypto")
 
 const esi_client_id = process.env.ESI_CLIENT_ID
 const esi_secret_key = process.env.ESI_SECRET_KEY
 
-router.get('/callback', async (req, res) => {
+router.get('/login/eve', async (req, res) => {
+    const redirect_uri = req.query.redirect_uri
+    const state = {
+        csrf_token: crypto.randomBytes(32).toString('hex'),
+        redirect_uri
+    }
+    const base64_state = Buffer.from(JSON.stringify(state), 'binary').toString('base64')
+    const uri_base64_state = encodeURI(base64_state)
+    req.session.state = state
+    const url = `https://login.eveonline.com/v2/oauth/authorize/?response_type=code&redirect_uri=http%3A%2F%2Flocalhost%2Flogin%2Feve%2Fcallback&client_id=${esi_client_id}&scope=publicData%20esi-assets.read_assets.v1&state=${uri_base64_state}`
+    return res.redirect(url)
+})
+
+router.get('/login/eve/callback', async (req, res) => {
+    const uri_base64_state = req.query.state
+    const base64_state = decodeURI(uri_base64_state)
+    const json_state = Buffer.from(base64_state, 'base64').toString()
+    const state = JSON.parse(json_state)
+
+    if (state.csrf_token !== req.session.state.csrf_token) {
+        throw Error('Invalid CSRF Token')
+    }
+
     const oauth_response = await axios.post('https://login.eveonline.com/v2/oauth/token', qs.stringify({
         grant_type: 'authorization_code',
         code: req.query.code
@@ -72,16 +94,16 @@ router.get('/callback', async (req, res) => {
 
     console.debug('Character ID: ' + character_id)
 
-    req.session.esi_access_token = access_token
-    req.session.esi_refresh_token = refresh_token
+    req.session.isAuthenticated = true
 
-    res.redirect('/assets')
+    return res.redirect(state.redirect_uri)
 })
 
+// TODO: Move to back end service
 router.get('/token-refresh', async (req, res) => {
     const response = await axios.post('https://login.eveonline.com/v2/oauth/token', qs.stringify({
         grant_type: 'refresh_token',
-        refresh_token: req.session.esi_refresh_token,
+        refresh_token: req.session.esi_refresh_token, // TODO: Grab from db
     }), {
         auth: {
             username: esi_client_id,
