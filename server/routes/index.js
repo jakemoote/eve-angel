@@ -10,6 +10,13 @@ const crypto = require("crypto")
 const esi_client_id = process.env.ESI_CLIENT_ID
 const esi_secret_key = process.env.ESI_SECRET_KEY
 
+router.get('/status', async (req, res) => {
+    res.json({
+        status: 'ok',
+        is_authenticated: req.session.is_authenticated ?? false
+    })
+})
+
 router.get('/login/eve', async (req, res) => {
     const redirect_uri = req.query.redirect_uri
     const state = {
@@ -97,7 +104,8 @@ router.get('/login/eve/callback', async (req, res) => {
 
     console.debug('Character ID: ' + character_id)
 
-    req.session.isAuthenticated = true
+    req.session.is_authenticated = true
+    req.session.character_id = character_id
 
     return res.redirect(state.redirect_uri)
 })
