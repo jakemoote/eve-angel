@@ -10,7 +10,10 @@ const session_options = {
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: {}
+    cookie: {
+        secure: true,
+        sameSite: 'none'
+    }
 }
 
 module.exports = session(session_options)

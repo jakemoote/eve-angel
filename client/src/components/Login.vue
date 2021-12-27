@@ -9,7 +9,7 @@ const count = ref(0)
 </script>
 
 <template>
-  <a href="http://localhost/login/eve?redirect_uri=http://localhost:3000/assets" data-bcup-haslogintext="no">
+  <a href="https://api.eve-angel.localhost/login/eve?redirect_uri=https://eve-angelx.localhost/assets">
     <img src="https://web.ccpgamescdn.com/eveonlineassets/developers/eve-sso-login-black-large.png">
   </a>
 </template>

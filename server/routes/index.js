@@ -26,7 +26,7 @@ router.get('/login/eve', async (req, res) => {
     const base64_state = Buffer.from(JSON.stringify(state), 'binary').toString('base64')
     const uri_base64_state = encodeURI(base64_state)
     req.session.state = state
-    const url = `https://login.eveonline.com/v2/oauth/authorize/?response_type=code&redirect_uri=http%3A%2F%2Flocalhost%2Flogin%2Feve%2Fcallback&client_id=${esi_client_id}&scope=publicData%20esi-assets.read_assets.v1&state=${uri_base64_state}`
+    const url = `https://login.eveonline.com/v2/oauth/authorize/?response_type=code&redirect_uri=https%3A%2F%2Fapi.eve-angel.localhost%2Flogin%2Feve%2Fcallback&client_id=${esi_client_id}&scope=publicData%20esi-assets.read_assets.v1&state=${uri_base64_state}`
     return res.redirect(url)
 })
 

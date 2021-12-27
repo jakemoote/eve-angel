@@ -1,21 +1,24 @@
 require('dotenv').config()
 
 const express = require('express')
+const cors = require('cors')
 const app = express()
-const port = 80
+const port = process.env.PORT ?? 80
 
 const session = require('./session')
-
-// if (app.get('env') === 'production') {
-//     app.set('trust proxy', 1) // trust first proxy
-//     sess.cookie.secure = true // serve secure cookies
-// }
-
 app.use(session)
+
+corsOptions = {
+    origin: 'https://eve-angelx.localhost',
+    credentials: true,
+}
+app.use(cors(corsOptions))
+
+app.set('trust proxy', 1)
 
 const index_routes = require('./routes/index');
 app.use('/', index_routes)
 
 app.listen(port, () => {
-    console.debug(`Listening at http://localhost:${port}`)
+    console.debug(`Server started on port: ${port}`)
 })

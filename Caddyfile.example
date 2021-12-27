@@ -1,0 +1,7 @@
+api.eve-angel.localhost {
+    reverse_proxy localhost:3001
+}
+
+eve-angelx.localhost {
+    reverse_proxy localhost:3000
+}
