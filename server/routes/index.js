@@ -28,8 +28,11 @@ router.get('/login/eve/callback', async (req, res) => {
     const base64_state = decodeURI(uri_base64_state)
     const json_state = Buffer.from(base64_state, 'base64').toString()
     const state = JSON.parse(json_state)
+    const session_state = req.session.state
 
-    if (state.csrf_token !== req.session.state.csrf_token) {
+    delete req.session.state
+
+    if (state.csrf_token !== session_state.csrf_token) {
         throw Error('Invalid CSRF Token')
     }
 
