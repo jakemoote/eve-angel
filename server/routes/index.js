@@ -19,27 +19,24 @@ router.get('/status', async (req, res) => {
 
 router.get('/login/eve', async (req, res) => {
     const redirect_uri = req.query.redirect_uri
-    const state = {
-        csrf_token: crypto.randomBytes(32).toString('hex'),
+    const csrf_token = crypto.randomBytes(32).toString('hex')
+    const callback_redirect_uri = encodeURI('https://api.eve-angel.localhost/login/eve/callback')
+
+    req.session.login_state = {
+        csrf_token,
         redirect_uri
     }
-    const base64_state = Buffer.from(JSON.stringify(state), 'binary').toString('base64')
-    const uri_base64_state = encodeURI(base64_state)
-    req.session.state = state
-    const url = `https://login.eveonline.com/v2/oauth/authorize/?response_type=code&redirect_uri=https%3A%2F%2Fapi.eve-angel.localhost%2Flogin%2Feve%2Fcallback&client_id=${esi_client_id}&scope=publicData%20esi-assets.read_assets.v1&state=${uri_base64_state}`
+    const url = `https://login.eveonline.com/v2/oauth/authorize/?response_type=code&redirect_uri=${callback_redirect_uri}&client_id=${esi_client_id}&scope=publicData%20esi-assets.read_assets.v1&state=${csrf_token}`
     return res.redirect(url)
 })
 
 router.get('/login/eve/callback', async (req, res) => {
-    const uri_base64_state = req.query.state
-    const base64_state = decodeURI(uri_base64_state)
-    const json_state = Buffer.from(base64_state, 'base64').toString()
-    const state = JSON.parse(json_state)
-    const session_state = req.session.state
+    // TODO: Check already authed
+    const login_state = req.session.login_state
 
-    delete req.session.state
+    delete req.session.login_state
 
-    if (state.csrf_token !== session_state.csrf_token) {
+    if (req.query.state !== login_state.csrf_token) {
         throw Error('Invalid CSRF Token')
     }
 
@@ -107,7 +104,7 @@ router.get('/login/eve/callback', async (req, res) => {
     req.session.is_authenticated = true
     req.session.character_id = character_id
 
-    return res.redirect(state.redirect_uri)
+    return res.redirect(login_state.redirect_uri)
 })
 
 // TODO: Move to back end service
