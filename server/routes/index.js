@@ -13,6 +13,14 @@ const prisma = new PrismaClient()
 const esi_client_id = process.env.ESI_CLIENT_ID
 const esi_secret_key = process.env.ESI_SECRET_KEY
 
+const requireAuth = (req, res, next) => {
+    if (!req.session.is_authenticated) {
+        return res.status(401).json({error: 'Unauthorized'})
+    }
+
+    next()
+}
+
 router.get('/status', async (req, res) => {
     res.json({
         status: 'ok',
@@ -135,11 +143,7 @@ router.get('/token-refresh', async (req, res) => {
     return res.redirect('/assets')
 })
 
-router.get('/assets', async (req, res) => {
-    if (!req.session.esi_access_token) {
-        return res.redirect('/')
-    }
-
+router.get('/assets', requireAuth, async (req, res) => {
     // const assets_response = await axios.get('https://esi.evetech.net/latest/characters/' + character_id + '/assets/', {
     //     headers: {'Authorization': 'Bearer ' + req.session.esi_access_token}
     // })
