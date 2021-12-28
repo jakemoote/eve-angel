@@ -2,9 +2,9 @@
   import axios from "axios";
 
   const testApi = async () => {
-    const status_response = await axios.get('https://api.eve-angel.localhost/status', { withCredentials: true })
+    const assets_response = await axios.get('https://api.eve-angel.localhost/assets', { withCredentials: true })
 
-    console.log(status_response)
+    console.log(assets_response)
   }
 </script>
 

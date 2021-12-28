@@ -6,6 +6,9 @@ const qs = require("querystring");
 const jwksClient = require("jwks-rsa");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto")
+const { PrismaClient } = require('@prisma/client')
+
+const prisma = new PrismaClient()
 
 const esi_client_id = process.env.ESI_CLIENT_ID
 const esi_secret_key = process.env.ESI_SECRET_KEY
@@ -146,8 +149,17 @@ router.get('/assets', async (req, res) => {
     //     asset_data.character_id = character_id
     //     Asset.create(asset_data)
     // })
+    try {
+        console.debug('getting characters')
+        const users = await prisma.character.findMany()
+        console.debug(users)
+    } catch (e) {
+        throw e
+    } finally {
+        prisma.$disconnect()
+    }
 
-    res.send('Login success - Assets')
+    res.json({'test': true})
 })
 
 module.exports = router

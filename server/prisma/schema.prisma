@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
+}
+
+model User {
+  id              String            @id @db.Uuid
+  createdAt       DateTime          @db.Timestamptz(6)
+  updatedAt       DateTime          @db.Timestamptz(6)
+  Characters      Character[]
+}
+
+model Character {
+  id            String   @id @db.Uuid
+  user_id       String   @db.Uuid
+  character_id  Int
+  access_token  String
+  refresh_token String   @db.VarChar(255)
+  createdAt     DateTime @db.Timestamptz(6)
+  updatedAt     DateTime @db.Timestamptz(6)
+  User          User    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model Asset {
+  id            String   @id @db.Uuid
+  character_id  Int
+  is_singleton  Boolean
+  item_id       BigInt   @unique
+  location_flag String   @db.VarChar(255)
+  location_id   BigInt
+  location_type String   @db.VarChar(255)
+  quantity      Int
+  type_id       Int
+  createdAt     DateTime @db.Timestamptz(6)
+  updatedAt     DateTime @db.Timestamptz(6)
+}
