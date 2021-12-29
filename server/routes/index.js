@@ -108,12 +108,27 @@ router.get('/login/eve/callback', async (req, res) => {
     })
 
     const character_id = verify_response.data.CharacterID
-    const character_name = verify_response.data.CharacterName
 
-    console.debug('Character ID: ' + character_id)
+    const user = await prisma.character.findUnique({where: {character_id}}).user()
+
+    if (user) {
+        req.session.user_id = user.id
+    } else {
+        const new_user = await prisma.user.create({
+            data: {
+                characters: {
+                    create: {
+                        character_id,
+                        access_token,
+                        refresh_token
+                    },
+                }
+            },
+        })
+        req.session.user_id = new_user.id
+    }
 
     req.session.is_authenticated = true
-    req.session.character_id = character_id
 
     return res.redirect(login_state.redirect_uri)
 })
