@@ -7,6 +7,7 @@ const jwksClient = require("jwks-rsa");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto")
 const { PrismaClient } = require('@prisma/client')
+const {TokenExpiredError} = require("jsonwebtoken");
 
 const prisma = new PrismaClient()
 
@@ -19,6 +20,70 @@ const requireAuth = (req, res, next) => {
     }
 
     next()
+}
+
+const jwks_client = jwksClient({
+    jwksUri: 'https://login.eveonline.com/oauth/jwks'
+})
+
+const getKey = (header, callback) => {
+    jwks_client.getSigningKey(header.kid, function (err, key) {
+        const signingKey = key.publicKey || key.rsaPublicKey
+        callback(null, signingKey)
+    })
+}
+
+const getCharacterWithUpdatedToken = async (character, refresh_expired = true) => {
+    try {
+        await verifyTokenByCharacter(character)
+        return character
+    } catch (err) {
+        if (err instanceof TokenExpiredError && refresh_expired) {
+            const updated_character = await refreshTokenForCharacter(character)
+            return await getCharacterWithUpdatedToken(updated_character, false)
+        }
+
+        throw err
+    }
+}
+
+const verifyTokenByCharacter = async (character) => {
+    try {
+        return !!await verifyTokenAndIssuer(character.access_token, 'login.eveonline.com')
+    } catch (err) {
+        if (err.message.includes('jwt issuer invalid.')) {
+            return !!await verifyTokenAndIssuer(character.access_token, 'https://login.eveonline.com')
+        }
+
+        throw err
+    }
+}
+
+const verifyTokenAndIssuer = async (token, issuer) => {
+    return new Promise((resolve, reject) => {
+        return jwt.verify(token, getKey, {issuer}, (err, decoded) =>
+            err ? reject(err) : resolve(decoded))
+    })
+}
+
+const refreshTokenForCharacter = async (character) => {
+    const refresh_token_response = await axios.post('https://login.eveonline.com/v2/oauth/token', qs.stringify({
+        grant_type: 'refresh_token',
+        refresh_token: character.refresh_token,
+    }), {
+        auth: {
+            username: esi_client_id,
+            password: esi_secret_key
+        }
+    })
+
+    return prisma.character.update({
+        where: { character_id: character.character_id },
+        data: {
+            access_token: refresh_token_response.data.access_token,
+            refresh_token: refresh_token_response.data.refresh_token
+        }
+    })
 }
 
 router.get('/status', async (req, res) => {
@@ -61,48 +126,10 @@ router.get('/login/eve/callback', async (req, res) => {
         }
     })
 
-    const jwks_client = jwksClient({
-        jwksUri: 'https://login.eveonline.com/oauth/jwks'
-    })
-
-    function getKey(header, callback) {
-        jwks_client.getSigningKey(header.kid, function (err, key) {
-            const signingKey = key.publicKey || key.rsaPublicKey
-            callback(null, signingKey)
-        })
-    }
-
     const access_token = oauth_response.data.access_token // JWT Token
     const refresh_token = oauth_response.data.refresh_token
 
-    const verifyToken = async (issuer) => {
-        return new Promise((resolve, reject) => {
-            return jwt.verify(access_token, getKey, {issuer}, (err, decoded) =>
-                err ? reject(err) : resolve(decoded))
-        })
-    }
-
-    let decoded
-    try {
-        decoded = await verifyToken('login.eveonline.com')
-    } catch (err) {
-        if (err.message.includes('jwt issuer invalid.')) {
-            try {
-                decoded = await verifyToken('https://login.eveonline.com')
-            } catch (err) {
-                console.debug('JWT Verification Failed')
-                return res.redirect('/')
-            }
-        } else {
-            console.debug('JWT Verification Failed')
-            return res.redirect('/')
-        }
-    }
-
-    console.debug('JWT Verified!')
-    console.debug(decoded)
-    console.debug(access_token)
-
+    // TODO: Pull character_id from jwt instead of making request
     const verify_response = await axios.get('https://esi.evetech.net/verify', {
         headers: {'Authorization': 'Bearer ' + access_token}
     })
@@ -133,52 +160,42 @@ router.get('/login/eve/callback', async (req, res) => {
     return res.redirect(login_state.redirect_uri)
 })
 
-// TODO: Move to back end service
-router.get('/token-refresh', async (req, res) => {
-    const response = await axios.post('https://login.eveonline.com/v2/oauth/token', qs.stringify({
-        grant_type: 'refresh_token',
-        refresh_token: req.session.esi_refresh_token, // TODO: Grab from db
-    }), {
-        auth: {
-            username: esi_client_id,
-            password: esi_secret_key
-        }
+router.get('/assets', requireAuth, async (req, res) => {
+    const user = await prisma.user.findUnique({
+        where: {
+            id: req.session.user_id,
+        },
+        include: {
+            characters: true,
+        },
     })
 
-    console.debug('Token refreshed!')
-    console.debug(response.data)
-    console.debug('Old token: ' + req.session.esi_access_token)
-    console.debug('Old refresh: ' + req.session.esi_refresh_token)
-    console.debug('New token: ' + response.data.access_token)
-    console.debug('New refresh: ' + response.data.refresh_token)
-
-    req.session.esi_access_token = response.data.access_token
-    req.session.esi_refresh_token = response.data.refresh_token
-
-    return res.redirect('/assets')
-})
-
-router.get('/assets', requireAuth, async (req, res) => {
-    // const assets_response = await axios.get('https://esi.evetech.net/latest/characters/' + character_id + '/assets/', {
-    //     headers: {'Authorization': 'Bearer ' + req.session.esi_access_token}
-    // })
-
-    // assets_response.headers['x-pages']
-    // assets_response.data.map((asset_data) => {
-    //     asset_data.character_id = character_id
-    //     Asset.create(asset_data)
-    // })
-    try {
-        console.debug('getting characters')
-        const users = await prisma.character.findMany()
-        console.debug(users)
-    } catch (e) {
-        throw e
-    } finally {
-        prisma.$disconnect()
+    const updateCharacter = async (character) => {
+        try {
+            const updated_character = await getCharacterWithUpdatedToken(character)
+            const assets_response = await axios.get('https://esi.evetech.net/latest/characters/' + updated_character.character_id + '/assets/', {
+                headers: {'Authorization': 'Bearer ' + updated_character.access_token}
+            })
+            // assets_response.headers['x-pages']
+            // assets_response.data.map((asset_data) => {
+            //     asset_data.character_id = character_id
+            //     Asset.create(asset_data)
+            // })
+            // TODO: Clear & add to assets db
+            // prisma.asset.deleteMany({where: {character_id: updated_character.character_id}})
+            // prisma.asset.createMany({})
+            return assets_response.data
+        } catch (err) {
+            console.debug(err, `^^^ Skipped updating ${character.id}...`)
+            return []
+        }
     }
 
-    res.json({'test': true})
+    const updateCharactersAssets = async () => Promise.all(user.characters.map((character) => updateCharacter(character)))
+
+    updateCharactersAssets()
+
+    res.json({'status': 'updating in background'})
 })
 
 module.exports = router
