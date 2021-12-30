@@ -1,10 +1,12 @@
 <script setup>
   import axios from "axios";
 
-  const testApi = async () => {
-    const assets_response = await axios.get('https://api.eve-angel.localhost/assets', { withCredentials: true })
+  const updateAssets = async () => {
+    await axios.get('https://api.eve-angel.localhost/assets/update', { withCredentials: true })
+  }
 
-    console.log(assets_response)
+  const getAssets = async () => {
+    await axios.get('https://api.eve-angel.localhost/assets', { withCredentials: true })
   }
 </script>
 
@@ -13,7 +15,8 @@
   <br><br>
   Assets!
   <br>
-  <button @click="testApi">Test Api</button>
+  <button @click="updateAssets">Update Assets</button>
+  <button @click="getAssets">Get Assets</button>
 </template>
 
 <style scoped>

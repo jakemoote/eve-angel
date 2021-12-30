@@ -9,7 +9,9 @@ const crypto = require("crypto")
 const { PrismaClient } = require('@prisma/client')
 const {TokenExpiredError} = require("jsonwebtoken");
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient({
+    log: ['query']
+})
 
 const esi_client_id = process.env.ESI_CLIENT_ID
 const esi_secret_key = process.env.ESI_SECRET_KEY
@@ -160,7 +162,7 @@ router.get('/login/eve/callback', async (req, res) => {
     return res.redirect(login_state.redirect_uri)
 })
 
-router.get('/assets', requireAuth, async (req, res) => {
+router.get('/assets/update', requireAuth, async (req, res) => {
     const user = await prisma.user.findUnique({
         where: {
             id: req.session.user_id,
@@ -192,7 +194,7 @@ router.get('/assets', requireAuth, async (req, res) => {
             // const pages = assets_response.headers['x-pages'] // TODO: Handle multiple pages
 
             await prisma.asset.deleteMany({where: {character_id: updated_character.character_id}})
-            prisma.asset.createMany({data: asset_data})
+            await prisma.asset.createMany({data: asset_data})
         } catch (err) {
             console.debug(err, `^^^ Skipped updating ${character.id}...`)
         }
@@ -203,6 +205,18 @@ router.get('/assets', requireAuth, async (req, res) => {
     updateCharactersAssets()
 
     res.json({'status': 'updating in background'})
+})
+
+router.get('/assets', requireAuth, async (req, res) => {
+    const assets = await prisma.asset.findMany({
+        where: {
+            character: {
+                user_id: req.session.user_id
+            }
+        }
+    })
+
+    res.json(assets)
 })
 
 module.exports = router

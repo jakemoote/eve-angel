@@ -16,6 +16,10 @@ app.use(cors(corsOptions))
 
 app.set('trust proxy', 1)
 
+BigInt.prototype.toJSON = function() {
+    return this.toString()
+}
+
 const index_routes = require('./routes/index');
 app.use('/', index_routes)
 

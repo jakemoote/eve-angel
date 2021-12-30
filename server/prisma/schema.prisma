@@ -11,7 +11,7 @@ model Session {
   id        String   @id
   sid       String   @unique
   data      String
-  expiresAt DateTime
+  expiresAt DateTime @db.Timestamptz(6)
 }
 
 model User {
@@ -22,14 +22,14 @@ model User {
 }
 
 model Character {
+  character_id  Int      @id
   user_id       String   @db.Uuid
-  character_id  Int      @unique
   access_token  String
   refresh_token String   @db.VarChar(255)
   createdAt     DateTime @db.Timestamptz(6) @default(now())
   updatedAt     DateTime @db.Timestamptz(6) @updatedAt
   user          User     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  @@id([user_id, character_id])
+  assets        Asset[]
 }
 
 model Asset {
@@ -44,4 +44,5 @@ model Asset {
   type_id       Int
   createdAt     DateTime @db.Timestamptz(6) @default(now())
   updatedAt     DateTime @db.Timestamptz(6) @updatedAt
+  character     Character @relation(fields: [character_id], references: [character_id], onDelete: NoAction, onUpdate: NoAction)
 }
