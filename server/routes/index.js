@@ -176,18 +176,25 @@ router.get('/assets', requireAuth, async (req, res) => {
             const assets_response = await axios.get('https://esi.evetech.net/latest/characters/' + updated_character.character_id + '/assets/', {
                 headers: {'Authorization': 'Bearer ' + updated_character.access_token}
             })
-            // assets_response.headers['x-pages']
-            // assets_response.data.map((asset_data) => {
-            //     asset_data.character_id = character_id
-            //     Asset.create(asset_data)
-            // })
-            // TODO: Clear & add to assets db
-            // prisma.asset.deleteMany({where: {character_id: updated_character.character_id}})
-            // prisma.asset.createMany({})
-            return assets_response.data
+
+            const asset_data = assets_response.data.map((asset) => {
+                return {
+                    character_id: updated_character.character_id,
+                    is_singleton: asset.is_singleton,
+                    item_id: asset.item_id,
+                    location_flag: asset.location_flag,
+                    location_id: asset.location_id,
+                    location_type: asset.location_type,
+                    quantity: asset.quantity,
+                    type_id: asset.type_id,
+                }
+            })
+            // const pages = assets_response.headers['x-pages'] // TODO: Handle multiple pages
+
+            await prisma.asset.deleteMany({where: {character_id: updated_character.character_id}})
+            prisma.asset.createMany({data: asset_data})
         } catch (err) {
             console.debug(err, `^^^ Skipped updating ${character.id}...`)
-            return []
         }
     }
 
