@@ -5,8 +5,8 @@
   import { io } from "socket.io-client"
   const socket = io("https://api.eve-angel.localhost", {withCredentials: true})
 
-  socket.on('test', (msg) => {
-    console.debug(msg)
+  socket.on('pong', (msg) => {
+    console.debug('Socket received: ', msg)
   })
 
   const updateAssets = async () => {
@@ -19,7 +19,10 @@
   }
 
   const testSocket = async () => {
-    socket.emit('test', {test: true, msg: 'lorem'})
+    const data = {status: 'ok', msg: 'ping'}
+    console.debug('Socket sending: ', data)
+    socket.emit('ping', data)
+
   }
 
   const assets = ref([])

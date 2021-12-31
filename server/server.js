@@ -40,14 +40,18 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log('socket disconnect');
     })
-    socket.on('test', (msg) => {
-        console.debug('socket test')
-        console.debug(msg)
+    socket.on('ping', (msg) => {
+        console.debug('Socket received: ', msg)
+        const data = {status: 'ok', msg: 'pong'}
+        console.debug('Socket sending: ', data)
+        io.to(socket.id).emit('pong', data)
     })
 });
 
 app.get('/socket/test', (req, res) => {
-    io.to(req.session.user_id).emit('test', {'status': 'ok'})
+    const data = {status: 'ok', msg: 'pong'}
+    console.debug('Socket sending: ', data)
+    io.to(req.session.user_id).emit('pong', data)
     res.json({"status": "ok"})
 })
 
