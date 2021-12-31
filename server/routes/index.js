@@ -215,19 +215,20 @@ router.get('/assets/update', requireAuth, async (req, res) => {
 
 router.get('/assets', requireAuth, async (req, res) => {
     const assets = await prisma.asset.findMany({
-        // select: {}, // TODO: Only select fields we need
-        where: {
-            character: {
-                user_id: req.session.user_id
-            }
-        },
-        include: {
+        select: {
+            type_id: true,
+            quantity: true,
             character: {
                 select: {
                     name: true
                 }
             }
-        }
+        },
+        where: {
+            character: {
+                user_id: req.session.user_id
+            }
+        },
     })
 
     const type_ids = assets.map((asset) => asset.type_id)
