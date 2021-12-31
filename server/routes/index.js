@@ -6,10 +6,14 @@ const qs = require("querystring");
 const jwksClient = require("jwks-rsa");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto")
-const { PrismaClient } = require('@prisma/client')
+const { PrismaClient } = require('../prisma/generated/eve-angel-client')
+const { PrismaClient: SDEPrismaClient } = require('../prisma/generated/eve-sde-client')
 const {TokenExpiredError} = require("jsonwebtoken");
 
 const prisma = new PrismaClient({
+    log: ['query']
+})
+const sde_prisma = new SDEPrismaClient({
     log: ['query']
 })
 
@@ -137,6 +141,7 @@ router.get('/login/eve/callback', async (req, res) => {
     })
 
     const character_id = verify_response.data.CharacterID
+    const character_name = verify_response.data.CharacterName
 
     const user = await prisma.character.findUnique({where: {character_id}}).user()
 
@@ -147,6 +152,7 @@ router.get('/login/eve/callback', async (req, res) => {
             data: {
                 characters: {
                     create: {
+                        name: character_name,
                         character_id,
                         access_token,
                         refresh_token
@@ -209,14 +215,44 @@ router.get('/assets/update', requireAuth, async (req, res) => {
 
 router.get('/assets', requireAuth, async (req, res) => {
     const assets = await prisma.asset.findMany({
+        // select: {}, // TODO: Only select fields we need
         where: {
             character: {
                 user_id: req.session.user_id
             }
+        },
+        include: {
+            character: {
+                select: {
+                    name: true
+                }
+            }
         }
     })
 
-    res.json(assets)
+    const type_ids = assets.map((asset) => asset.type_id)
+    const types = await sde_prisma.invTypes.findMany({
+        where: {typeID: {in: type_ids}},
+        select: {
+            typeID: true,
+            typeName: true,
+            description: true,
+        },
+    },)
+
+    const assets_return = assets.map((asset) => {
+        const type = types.find(type => type.typeID === asset.type_id)
+        const type_name = type.typeName
+
+        return {
+            type_id: asset.type_id,
+            name: type_name,
+            quantity: asset.quantity,
+            character: asset.character
+        }
+    })
+
+    res.json(assets_return)
 })
 
 module.exports = router
