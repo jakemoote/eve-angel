@@ -26,7 +26,11 @@
     const data = {status: 'ok', msg: 'ping'}
     console.debug('Socket sending: ', data)
     socket.emit('ping', data)
+  }
 
+  const testGraphql = async () => {
+    const response = await axios.post('https://api.eve-angel.localhost/graphql', {query: '{allAssets { id }}'})
+    console.debug(response)
   }
 
   const assets_columns = ref([
@@ -66,6 +70,7 @@
   <button @click="updateAssets">Update Assets</button>
   <button @click="getAssets">Get Assets</button>
   <button @click="testSocket">Test Socket</button>
+  <button @click="testGraphql">Test GraphQL</button>
 
   <input type="text" id="search" placeholder="Filter..." @input="doSearch">
   <AgGridVue
