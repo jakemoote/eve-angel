@@ -5,8 +5,7 @@ const {prisma} = require("../services/prisma")
 const express = require("express")
 const router = express.Router()
 
-const esi_client_id = process.env.ESI_CLIENT_ID
-const esi_secret_key = process.env.ESI_SECRET_KEY
+const {esi_client_id,esi_secret_key} = require('../config/esi')
 
 router.get('/eve', async (req, res) => {
     const redirect_uri = req.query.redirect_uri

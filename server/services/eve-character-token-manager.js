@@ -7,6 +7,7 @@ const {prisma} = require("../services/prisma");
 const jwks_client = jwksClient({
     jwksUri: 'https://login.eveonline.com/oauth/jwks'
 })
+const {esi_client_id,esi_secret_key} = require('../config/esi')
 
 const getKey = (header, callback) => {
     jwks_client.getSigningKey(header.kid, function (err, key) {
