@@ -218,6 +218,8 @@ router.get('/assets', requireAuth, async (req, res) => {
         select: {
             type_id: true,
             quantity: true,
+            location_type: true,
+            location_id: true,
             character: {
                 select: {
                     name: true
@@ -241,16 +243,33 @@ router.get('/assets', requireAuth, async (req, res) => {
         },
     },)
 
+    const station_location_ids = assets.map((asset) => asset.location_type === 'station' ? asset.location_id : null).filter(asset => asset)
+    const stations = await sde_prisma.staStations.findMany({
+        select: {
+            stationID: true,
+            stationName: true
+        },
+        where: {stationID: {in: station_location_ids}}
+    })
+
     const assets_return = assets.map((asset) => {
         const type = types.find(type => type.typeID === asset.type_id)
         const type_name = type.typeName
 
-        return {
+        const data = {
             type_id: asset.type_id,
             name: type_name,
             quantity: asset.quantity,
             character: asset.character
         }
+
+        const station = asset.location_type === 'station' ? (stations.find(station => station.stationID === asset.location_id)) : null
+
+        if (station) {
+            data.station = station
+        }
+
+        return data
     })
 
     res.json(assets_return)

@@ -31,8 +31,9 @@
 
   const assets_columns = ref([
     { field: "name", sortable: true, filter: true },
-    { field: "quantity", sortable: true, filter: true },
+    { field: "quantity", sortable: true, filter: true, width: 80 },
     { field: "character.name", sortable: true, filter: true },
+    { field: "station.stationName", headerName: 'Station', sortable: true, filter: true },
   ])
 
   const assets_row_data = ref([])
