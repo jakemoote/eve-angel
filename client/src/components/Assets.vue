@@ -37,6 +37,18 @@
 
   const assets_row_data = ref([])
   getAssets()
+
+  let grid_api
+  let column_api
+  const onGridReady = (params) => {
+    console.debug('grid ready')
+    grid_api = params.api
+    column_api = params.columnApi
+  }
+
+  const doSearch = () => {
+    grid_api.setQuickFilter(document.getElementById('search').value)
+  }
 </script>
 
 <template>
@@ -48,11 +60,13 @@
   <button @click="getAssets">Get Assets</button>
   <button @click="testSocket">Test Socket</button>
 
+  <input type="text" id="search" placeholder="Filter..." @input="doSearch">
   <AgGridVue
       style="height: 800px; width: 100%;"
       class="ag-theme-alpine-dark"
       :columnDefs="assets_columns"
       :rowData="assets_row_data"
+      @grid-ready="onGridReady"
   >
   </AgGridVue>
 </template>
