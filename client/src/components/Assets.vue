@@ -39,12 +39,18 @@
   const assets_row_data = ref([])
   getAssets()
 
+  const default_col_def = {
+    resizable: true
+  }
+
   let grid_api
   let column_api
   const onGridReady = (params) => {
     console.debug('grid ready')
     grid_api = params.api
     column_api = params.columnApi
+
+    grid_api.sizeColumnsToFit()
   }
 
   const doSearch = () => {
@@ -67,6 +73,7 @@
       class="ag-theme-alpine-dark"
       :columnDefs="assets_columns"
       :rowData="assets_row_data"
+      :defaultColDef="default_col_def"
       @grid-ready="onGridReady"
   >
   </AgGridVue>
