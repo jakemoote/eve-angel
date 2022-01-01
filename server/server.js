@@ -23,8 +23,8 @@ BigInt.prototype.toJSON = function() {
     return this.toString()
 }
 
-const index_routes = require('./routes/index');
-app.use('/', index_routes)
+const routes = require('./routes/index')
+app.use('/', routes)
 
 const io = new Server(server, {cors: corsOptions})
 
