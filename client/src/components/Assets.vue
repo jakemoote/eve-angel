@@ -80,7 +80,6 @@
   <button @click="updateAssets">Update Assets</button>
   <button @click="getAssets">Get Assets</button>
   <button @click="testSocket">Test Socket</button>
-  <button @click="testGraphql">Test GraphQL</button>
 
   <input type="text" id="search" placeholder="Filter..." @input="doSearch">
   <AgGridVue
