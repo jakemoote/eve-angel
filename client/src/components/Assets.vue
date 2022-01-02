@@ -18,8 +18,23 @@
   }
 
   const getAssets = async () => {
-    const assets_response = await axios.get('https://api.eve-angel.localhost/assets', { withCredentials: true })
-    assets_row_data.value = assets_response.data
+    const response = await axios.post('https://api.eve-angel.localhost/graphql', {
+      query: `{
+        assets {
+          quantity
+          character {
+            name
+          }
+          type {
+            typeName
+          }
+          station {
+            stationName
+          }
+        }
+      }`
+    }, { withCredentials: true })
+    assets_row_data.value = response.data.data.assets
   }
 
   const testSocket = async () => {
@@ -28,20 +43,8 @@
     socket.emit('ping', data)
   }
 
-  const testGraphql = async () => {
-    const response = await axios.post('https://api.eve-angel.localhost/graphql', {
-      query: '{assets {' +
-          "id\r\n" +
-          'character {' +
-          'name' +
-          '}' +
-          '}}'
-    }, { withCredentials: true })
-    console.debug(response)
-  }
-
   const assets_columns = ref([
-    { field: "name", sortable: true, filter: true },
+    { field: "type.typeName", headerName: 'Asset', sortable: true, filter: true },
     { field: "quantity", sortable: true, filter: true, width: 80 },
     { field: "character.name", sortable: true, filter: true },
     { field: "station.stationName", headerName: 'Station', sortable: true, filter: true },

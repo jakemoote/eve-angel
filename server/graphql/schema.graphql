@@ -15,9 +15,28 @@ type Character {
 type Asset {
     id: ID!
     character_id: String!
+    is_singleton: Boolean!
+    item_id: String!
+    location_flag: String!
+    location_id: String!
+    location_type: String!
+    quantity: Int!
+    type_id: Int!
     createdAt: String!
     updatedAt: String!
     character: Character!
+    type: AssetType!
+    station: Station
+}
+
+# SDE
+type AssetType {
+    id: ID!
+    typeName: String!
+}
+type Station {
+    id: ID!
+    stationName: String!
 }
 type Query {
     assets: [Asset!]!
