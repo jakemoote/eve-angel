@@ -1,8 +1,6 @@
 require('dotenv').config()
 
 const { ApolloServer } = require('apollo-server-express')
-const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core')
-
 const express = require('express')
 const cors = require('cors')
 const app = express()
@@ -59,35 +57,28 @@ app.get('/socket/test', (req, res) => {
     res.json({"status": "ok"})
 })
 
-const typeDefs = `
-  type Asset {
-    id: String
-  }
-  type Query {
-    allAssets: [Asset!]!
-  }
-`;
-const resolvers = {
-    Query: {
-        allAssets: async () => {
-            return await prisma.asset.findMany({})
-        }
-    }
-}
+const { loadSchema} = require('@graphql-tools/load')
+const { GraphQLFileLoader } = require('@graphql-tools/graphql-file-loader')
 
-async function startApolloServer(typeDefs, resolvers) {
+async function startApolloServer() {
+    const typeDefs = await loadSchema('./graphql/schema.graphql', {
+        loaders: [new GraphQLFileLoader()]
+    })
+
+    const resolvers = require('./graphql/resolvers')
+
     const apollo_server = new ApolloServer({
         typeDefs,
         resolvers,
+        context: ({req, res}) => {
+            if (!req.session.is_authenticated) throw new Error('Auth required')
+            return {req, res}
+        }
     });
     await apollo_server.start();
-    apollo_server.applyMiddleware({ app });
+    apollo_server.applyMiddleware({ app, cors: corsOptions });
     await new Promise(resolve => http_server.listen({ port }, resolve));
     console.log(`Server listening on port ${port}`)
-    console.debug(`grpahql path: ${apollo_server.graphqlPath}`)
+    console.debug(`graphql endpoint: ${apollo_server.graphqlPath}`)
 }
-startApolloServer(typeDefs, resolvers)
-
-// http_server.listen(port, () => {
-//     console.debug(`Server started on port: ${port}`)
-// })
+startApolloServer()

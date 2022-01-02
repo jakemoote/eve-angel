@@ -29,7 +29,14 @@
   }
 
   const testGraphql = async () => {
-    const response = await axios.post('https://api.eve-angel.localhost/graphql', {query: '{allAssets { id }}'})
+    const response = await axios.post('https://api.eve-angel.localhost/graphql', {
+      query: '{assets {' +
+          "id\r\n" +
+          'character {' +
+          'name' +
+          '}' +
+          '}}'
+    }, { withCredentials: true })
     console.debug(response)
   }
 
