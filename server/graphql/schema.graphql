@@ -28,11 +28,18 @@ type Asset {
     type: AssetType!
     station: Station
 }
+type MarketPrice {
+    type_id: Int!
+    adjusted_price: Float!
+    average_price: Float!
+    type: AssetType!
+}
 
 # SDE
 type AssetType {
     id: ID!
     typeName: String!
+    market_price: MarketPrice
 }
 type Station {
     id: ID!

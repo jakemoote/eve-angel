@@ -29,5 +29,11 @@ module.exports = {
             const station = await sde_prisma.staStations.findUnique({where: {stationID: asset.location_id}})
             return station
         }
+    },
+    AssetType: {
+        market_price: async (asset_type) => {
+            const market_price = await prisma.marketPrice.findUnique({where: {type_id: asset_type.typeID}})
+            return market_price
+        }
     }
 }

@@ -15,6 +15,10 @@
     console.debug('Socket received: ', msg)
   })
 
+  const updateMarket = async () => {
+    await axios.get('https://api.eve-angel.localhost/market/update', { withCredentials: true })
+  }
+
   const updateAssets = async () => {
     await axios.get('https://api.eve-angel.localhost/assets/update', { withCredentials: true })
   }
@@ -34,6 +38,10 @@
         }
         type {
           typeName
+          market_price {
+            adjusted_price
+            average_price
+          }
         }
         station {
           stationName
@@ -55,6 +63,8 @@
     { field: "quantity", sortable: true, filter: true, width: 80 },
     { field: "character.name", sortable: true, filter: true },
     { field: "station.stationName", headerName: 'Station', sortable: true, filter: true },
+    { field: "type.market_price.adjusted_price", headerName: 'Adjusted Price', sortable: true, filter: true, valueFormatter: params => params.value.toFixed(2) },
+    { field: "type.market_price.average_price", headerName: 'Average Price', sortable: true, filter: true },
   ])
 
   const assets_row_data = ref([])
@@ -86,6 +96,7 @@
   <br>
   <button @click="updateAssets">Update Assets</button>
   <button @click="getAssets">Get Assets</button>
+  <button @click="updateMarket">Update Market</button>
   <button @click="testSocket">Test Socket</button>
 
   <input type="text" id="search" placeholder="Filter..." @input="doSearch">

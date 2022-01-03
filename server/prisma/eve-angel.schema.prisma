@@ -48,3 +48,9 @@ model Asset {
   updatedAt     DateTime  @updatedAt @db.Timestamptz(6)
   character     Character @relation(fields: [character_id], references: [character_id], onDelete: NoAction, onUpdate: NoAction)
 }
+
+model MarketPrice {
+  type_id        Int   @id
+  adjusted_price Float @default(0)
+  average_price  Float @default(0)
+}
