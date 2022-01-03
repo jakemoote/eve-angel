@@ -6,6 +6,8 @@
   import axios from "axios";
   import {ref} from "vue";
 
+  import {ApolloClient, InMemoryCache, createHttpLink, gql} from "@apollo/client/core";
+
   import { io } from "socket.io-client"
   const socket = io("https://api.eve-angel.localhost", {withCredentials: true})
 
@@ -18,23 +20,28 @@
   }
 
   const getAssets = async () => {
-    const response = await axios.post('https://api.eve-angel.localhost/graphql', {
-      query: `{
-        assets {
-          quantity
-          character {
-            name
-          }
-          type {
-            typeName
-          }
-          station {
-            stationName
-          }
+    const client = new ApolloClient({
+      link: createHttpLink({uri:'https://api.eve-angel.localhost/graphql', credentials: 'include'}),
+      cache: new InMemoryCache(),
+    });
+
+    const result = await client.query({
+      query: gql`{
+      assets {
+        quantity
+        character {
+          name
         }
-      }`
-    }, { withCredentials: true })
-    assets_row_data.value = response.data.data.assets
+        type {
+          typeName
+        }
+        station {
+          stationName
+        }
+      }
+    }`
+    })
+    assets_row_data.value = result.data.assets
   }
 
   const testSocket = async () => {
