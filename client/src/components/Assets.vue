@@ -63,8 +63,8 @@
     { field: "quantity", sortable: true, filter: true, width: 80 },
     { field: "character.name", sortable: true, filter: true },
     { field: "station.stationName", headerName: 'Station', sortable: true, filter: true },
-    { field: "type.market_price.adjusted_price", headerName: 'Adjusted Price', sortable: true, filter: true, valueFormatter: params => params.value.toFixed(2) },
-    { field: "type.market_price.average_price", headerName: 'Average Price', sortable: true, filter: true },
+    { field: "type.market_price.adjusted_price", headerName: 'Adjusted Price', sortable: true, filter: true, valueFormatter: params => params.value ? params.value.toFixed(2) : '-' },
+    { field: "type.market_price.average_price", headerName: 'Average Price', sortable: true, filter: true, valueFormatter: params => params.value ? params.value.toFixed(2) : '-' },
   ])
 
   const assets_row_data = ref([])
